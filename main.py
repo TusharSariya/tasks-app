@@ -46,9 +46,11 @@ with app.app_context():
     db.drop_all()
     db.create_all()
     
-    jones = Author(name="Jonny Jones", age=25, height=1.8)
-    emily = Author(name="Emily Hynes", age=30, height=1.0, boss=jones)
-    steven = Author(name="Steven Butt", age=22, height=1.7, boss=emily)
+    jones = Author(name="Jonny Jones", age=25, height=1.8)              # level 0
+    emily = Author(name="Emily Hynes", age=30, height=1.0, boss=jones)  # level 1
+    acadia = Author(name="Acadia Philips", age=30, height=1.0, boss=jones)  # level 1
+    steven = Author(name="Steven Butt", age=22, height=1.7, boss=emily) # level 2
+    greg = Author(name="Gregory Butt", age=22, height=1.7, boss=acadia)  # level 2
     due_date = datetime(2026, 1, 7, 9, 0)
     # Now we pass a list of authors to 'owners'
     meeting_prep = Task(headline="meeting prep", content="lorem ipsum how the buisness makes money", date=due_date, owners=[emily, jones])
@@ -73,12 +75,13 @@ def viewtasks():
 
 
 # http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones
-# http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones&level=1
+# http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones&start_level=1&end_level=2
 @app.route("/view/subordinates")
 def viewsubordinates():
     # Get the 'boss_id' from the URL query parameters (e.g., ?boss_id=1)
     name = request.args.get('name')
-    level = int(request.args.get('level',1))
+    start_level = int(request.args.get('start_level',1))
+    end_level = int(request.args.get('end_level',1))
 
     if not name:
         print("no name provided")
@@ -94,12 +97,13 @@ def viewsubordinates():
         curname,curlevel = bfs.pop(0)
         print(curname)
         print(curlevel)
-        if curlevel == level:
+        if curlevel == end_level:
             continue
         #this logic assumes names are unique
         subordinates = Author.query.filter_by(name=curname).all()[0].subordinates
         for sub in subordinates:
-            subs.append(sub.name)
+            if curlevel >= start_level-1:
+                subs.append({"name":sub.name,"distance":curlevel+1})
             bfs.append((sub.name,curlevel+1))
 
     print(subs)

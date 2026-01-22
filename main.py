@@ -50,11 +50,20 @@ with app.app_context():
     emily = Author(name="Emily Hynes", age=30, height=1.0, boss=jones)  # level 1
     acadia = Author(name="Acadia Philips", age=30, height=1.0, boss=jones)  # level 1
     steven = Author(name="Steven Butt", age=22, height=1.7, boss=emily) # level 2
+    evan = Author(name="Evan Butt", age=22, height=1.7, boss=emily) # level 2
     greg = Author(name="Gregory Butt", age=22, height=1.7, boss=acadia)  # level 2
+    Kazawitch = Author(name="Kazawitch Haderach", age=22, height=1.7, boss=greg)  # level 3
+
     due_date = datetime(2026, 1, 7, 9, 0)
-    # Now we pass a list of authors to 'owners'
-    meeting_prep = Task(headline="meeting prep", content="lorem ipsum how the buisness makes money", date=due_date, owners=[emily, jones])
-    db.session.add_all([jones, emily, steven, meeting_prep])
+    meeting_prep = Task(headline="monday meeting prep", content="lorem ipsum how the buisness makes money on monday", date=due_date, owners=[emily])
+
+    due_date3 = datetime(2026, 1, 9, 9, 0)
+    meeting_prep = Task(headline="wednesday meeting prep", content="lorem ipsum how the buisness makes money on wednesday", date=due_date3, owners=[emily])
+
+    due_date2 = datetime(2026, 1, 14, 9, 0)
+    project_1   = Task(headline="project about stuff", content="stuff stuff stuff", date=due_date2,owners=[steven,evan])
+
+    db.session.add_all([jones, emily, steven, meeting_prep, project_1])
     db.session.commit()
 
 @app.route('/')
@@ -62,6 +71,7 @@ def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
 
+# http://127.0.0.1:5000/view/tasks
 @app.route("/view/tasks")
 def viewtasks():
     #SELECT task.headline AS task_headline, author.name AS author_name 
@@ -108,6 +118,22 @@ def viewsubordinates():
 
     print(subs)
     return subs
+
+# http://127.0.0.1:5000/view/reportingstruct?name=Kazawitch+Haderach
+@app.route("/view/reportingstruct")
+def viewreportingstruct():
+    name = request.args.get('name')
+    if name is None:
+        return("no name provided")
+
+    auth = Author.query.filter_by(name=name).all()[0]
+    ret = []
+
+    while auth.boss is not None:
+        auth = auth.boss
+        ret.append(auth.name)
+    return(ret)
+
 
 if __name__ == '__main__':
     app.run(debug=True)

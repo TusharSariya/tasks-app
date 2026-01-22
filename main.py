@@ -78,19 +78,32 @@ def viewtasks():
 def viewsubordinates():
     # Get the 'boss_id' from the URL query parameters (e.g., ?boss_id=1)
     name = request.args.get('name')
-    level = request.args.get('level')
-    subs = []
+    level = int(request.args.get('level',1))
 
-    if name:
-        subordinates = Author.query.filter_by(name=name).all()
-        for sub in subordinates:
-            subs.append(sub.name)
-        print(subs)
-        return subs
-
-    else:
+    if not name:
         print("no name provided")
         return "no name provided"
+    
+    subs = []
+
+    bfs = []
+
+    bfs.append((name,0))
+
+    while bfs:
+        curname,curlevel = bfs.pop(0)
+        print(curname)
+        print(curlevel)
+        if curlevel == level:
+            continue
+        #this logic assumes names are unique
+        subordinates = Author.query.filter_by(name=curname).all()[0].subordinates
+        for sub in subordinates:
+            subs.append(sub.name)
+            bfs.append((sub.name,curlevel+1))
+
+    print(subs)
+    return subs
 
 if __name__ == '__main__':
     app.run(debug=True)

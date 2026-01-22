@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
+app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 
 # Association table for the Many-to-Many relationship
@@ -71,7 +72,7 @@ def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
 
-# http://127.0.0.1:5000/view/tasks
+# http://127.0.0.1:5000/view/tasks/all
 @app.route("/view/tasks")
 def viewtasks():
     #SELECT task.headline AS task_headline, author.name AS author_name 
@@ -82,6 +83,12 @@ def viewtasks():
     tasks = db.session.query(Task.headline, Author.name).join(Task.owners).all()
     print(tasks)
     return str(tasks)
+
+# http://127.0.0.1:5000/view/tasks?name=Emily+Hynes
+@app.route("/view/tasks")
+def viewtasks():
+    name = request.args.get('name')
+    tasks = db.session.query(Task.headline).join(Task.owners).filter_by(Author.name=name).all()
 
 
 # http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones
@@ -130,7 +137,7 @@ def viewreportingstruct():
     ret = []
 
     while auth.boss is not None:
-        auth = auth.boss
+        auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh
         ret.append(auth.name)
     return(ret)
 

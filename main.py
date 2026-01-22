@@ -8,12 +8,15 @@ db = SQLAlchemy(app)
 
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.string(30), nullable=False)
+    name = db.Column(db.String(30), nullable=False)
     age = db.Column(db.Integer,nullable=False)
     height = db.Column(db.Float,nullable=False)
-    subordinates = db.Column(db.List,default=[])
-    peers        = db.Column(db.List,default=[])
-    reporting_to = db.Column(db.String,nullable=True)
+    peers        = db.Column(db.JSON,default=list)
+
+    # Self-referential relationship
+    boss_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=True)
+    subordinates = db.relationship('Author', backref=db.backref('boss', remote_side=[id]))
+
     tasks = db.relationship('Task', backref='author', lazy=True)
 
 class Task(db.Model):
@@ -35,6 +38,12 @@ with app.app_context():
 def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
+
+@app.route("/viewtasks")
+def viewtasks():
+    tasks = Task.query(Task.headline,Author.name).join(Author).all()
+    print(tasks)
+    return tasks
 
 if __name__ == '__main__':
     app.run(debug=True)

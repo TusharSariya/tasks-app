@@ -1,4 +1,4 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timezone
 
@@ -60,7 +60,7 @@ def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
 
-@app.route("/viewtasks")
+@app.route("/view/tasks")
 def viewtasks():
     #SELECT task.headline AS task_headline, author.name AS author_name 
     #FROM task 
@@ -70,6 +70,27 @@ def viewtasks():
     tasks = db.session.query(Task.headline, Author.name).join(Task.owners).all()
     print(tasks)
     return str(tasks)
+
+
+# http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones
+# http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones&level=1
+@app.route("/view/subordinates")
+def viewsubordinates():
+    # Get the 'boss_id' from the URL query parameters (e.g., ?boss_id=1)
+    name = request.args.get('name')
+    level = request.args.get('level')
+    subs = []
+
+    if name:
+        subordinates = Author.query.filter_by(name=name).all()
+        for sub in subordinates:
+            subs.append(sub.name)
+        print(subs)
+        return subs
+
+    else:
+        print("no name provided")
+        return "no name provided"
 
 if __name__ == '__main__':
     app.run(debug=True)

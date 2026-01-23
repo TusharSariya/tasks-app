@@ -51,6 +51,18 @@ class Task(db.Model):
 
     def __repr__(self):
         return f'<Task {self.id}>'
+    
+class Comment(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    content = db.Column(db.String(1000), nullable=False)
+    task_id = db.Column(db.Integer, db.ForeignKey('task.id'), nullable=True)
+    post_id = db.Column(db.Integer, db.ForeignKey('post.id'), nullable=True)
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False)
+
+    # Relationships for easier data traversal
+    author = db.relationship('Author', backref=db.backref('comments', lazy=True))
+    task = db.relationship('Task', backref=db.backref('comments', lazy=True)) # comment.task and task.comment, these are both the actual objects
+    post = db.relationship('Post', backref=db.backref('comments', lazy=True))
 
 with app.app_context():
     db.drop_all()
@@ -75,7 +87,11 @@ with app.app_context():
 
     first_post = Post(headline="this is the first post", content="lorem ipsum how to make money",author=jones)
 
-    db.session.add_all([jones, emily, steven, meeting_prep, project_1])
+
+    first_comment = Comment(content="example comment",task=meeting_prep,author=jones)
+    second_comment = Comment(content="example comment",task=meeting_prep,author=emily)
+
+    db.session.add_all([jones, emily, steven, meeting_prep, project_1, first_post, first_comment, second_comment])
     db.session.commit()
 
 @app.route('/')
@@ -86,14 +102,18 @@ def index():
 # http://127.0.0.1:5000/view/tasks
 @app.route("/view/tasks")
 def viewtasks():
-    #SELECT task.headline AS task_headline, author.name AS author_name 
-    #FROM task 
-    #JOIN task_owners ON task.id = task_owners.task_id 
-    #JOIN author ON author.id = task_owners.author_id;
-
-    tasks = db.session.query(Task.headline, Author.name).join(Task.owners).all()
+    tasks = db.session.query(Task, Author).join(Task.owners).all()
     # Return a list of dictionaries as JSON
-    return jsonify([{"headline": t[0], "owner": t[1]} for t in tasks])
+    print(tasks)
+    json = []
+    for task in tasks:
+        json.append({
+            "Author": task.Author.name,
+            "Headline": task.Task.headline,
+            "comments": [{"content": comment.content, "author": comment.author.name} for comment in task.Task.comments]
+        })
+    
+    return jsonify(json)
 
 # http://127.0.0.1:5000/view/tasks?name=Emily+Hynes
 #@app.route("/view/tasks")

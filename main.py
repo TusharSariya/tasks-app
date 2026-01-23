@@ -83,7 +83,7 @@ def index():
     tasks = Task.query.all()
     return render_template('index.html', tasks=tasks)
 
-# http://127.0.0.1:5000/view/tasks/all
+# http://127.0.0.1:5000/view/tasks
 @app.route("/view/tasks")
 def viewtasks():
     #SELECT task.headline AS task_headline, author.name AS author_name 
@@ -92,15 +92,15 @@ def viewtasks():
     #JOIN author ON author.id = task_owners.author_id;
 
     tasks = db.session.query(Task.headline, Author.name).join(Task.owners).all()
-    print(tasks)
-    return str(tasks)
+    # Return a list of dictionaries as JSON
+    return jsonify([{"headline": t[0], "owner": t[1]} for t in tasks])
 
 # http://127.0.0.1:5000/view/tasks?name=Emily+Hynes
-@app.route("/view/tasks")
-def viewtasks2():
-    name = request.args.get('name')
+#@app.route("/view/tasks")
+#def viewtasks2():
+#    name = request.args.get('name')
     #tasks = db.session.query(Task.headline).join(Task.owners).filter_by(Author.name=name).all()
-    return None
+#    return None
 
 
 # http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones
@@ -134,9 +134,17 @@ def viewsubordinates():
             if curlevel >= start_level-1:
                 subs.append({"name":sub.name,"distance":curlevel+1})
             bfs.append((sub.name,curlevel+1))
+        
+        author = Author.query.filter_by(name=curname).first()
+        if author:
+            for sub in author.subordinates:
+                if curlevel >= start_level-1:
+                    subs.append({"name":sub.name,"distance":curlevel+1})
+                bfs.append((sub.name,curlevel+1))
 
     print(subs)
     return subs
+    return jsonify(subs)
 
 # http://127.0.0.1:5000/view/reportingstruct?name=Kazawitch+Haderach
 @app.route("/view/reportingstruct")
@@ -146,12 +154,17 @@ def viewreportingstruct():
         return("no name provided")
 
     auth = Author.query.filter_by(name=name).all()[0]
+    auth = Author.query.filter_by(name=name).first()
+    if not auth:
+        return jsonify({"error": "Author not found"}), 404
+        
     ret = []
 
     while auth.boss is not None:
         auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh
         ret.append(auth.name)
     return(ret)
+    return jsonify(ret)
 
 # http://127.0.0.1:5000/view/post?name=Jonny+Jones
 @app.route("/view/post")
@@ -165,6 +178,7 @@ def viewpost():
     
     # Return a list of headlines so Flask can serialize it
     return [post.headline for post in posts]
+    return jsonify([post.headline for post in posts])
 
 
 if __name__ == '__main__':

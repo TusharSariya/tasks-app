@@ -22,7 +22,7 @@ class Author(db.Model):
     height = db.Column(db.Float,nullable=False)
 
     # Self-referential relationship
-    boss_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=True)
+    boss_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=True) # when you create a subordinate it is associated to the boss and populates the subordinates list
     subordinates = db.relationship('Author', backref=db.backref('boss', remote_side=[id])) #this is magically a list because of how sql alchemy works
 
     # Updated to Many-to-Many using the secondary table
@@ -143,6 +143,8 @@ def viewsubordinates():
     bfs.append((name,0))
 
     while bfs:
+        print("here")
+        print(bfs)
         curname,curlevel = bfs.pop(0)
         print(curname)
         print(curlevel)
@@ -154,13 +156,6 @@ def viewsubordinates():
             if curlevel >= start_level-1:
                 subs.append({"name":sub.name,"distance":curlevel+1})
             bfs.append((sub.name,curlevel+1))
-        
-        author = Author.query.filter_by(name=curname).first()
-        if author:
-            for sub in author.subordinates:
-                if curlevel >= start_level-1:
-                    subs.append({"name":sub.name,"distance":curlevel+1})
-                bfs.append((sub.name,curlevel+1))
 
     print(subs)
     return subs

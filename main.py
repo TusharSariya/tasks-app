@@ -143,11 +143,7 @@ def viewsubordinates():
     bfs.append((name,0))
 
     while bfs:
-        print("here")
-        print(bfs)
         curname,curlevel = bfs.pop(0)
-        print(curname)
-        print(curlevel)
         if curlevel == end_level:
             continue
         #this logic assumes names are unique
@@ -160,6 +156,7 @@ def viewsubordinates():
     print(subs)
     return subs
 
+# SELECT author.id AS author_id, author.name AS author_name, author.age AS author_age, author.height AS author_height, author.boss_id AS author_boss_id FROM author WHERE author.name = ?
 # http://127.0.0.1:5000/view/reportingstruct?name=Kazawitch+Haderach
 @app.route("/view/reportingstruct")
 def viewreportingstruct():
@@ -175,9 +172,44 @@ def viewreportingstruct():
     ret = []
 
     while auth.boss is not None:
-        auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh
+        auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh, ctes are better
         ret.append(auth.name)
     return(ret)
+    return jsonify(ret)
+
+# magic i dont understand
+# WITH RECURSIVE ancestors(id, name, boss_id) AS (SELECT author.id AS id, author.name AS name, author.boss_id AS boss_id FROM author WHERE author.name = ? UNION ALL SELECT author.id AS author_id, author.name AS author_name, author.boss_id AS author_boss_id FROM author JOIN ancestors ON ancestors.boss_id = author.id) SELECT ancestors.name AS ancestors_name FROM ancestors
+# http://127.0.0.1:5000/view/reportingstruct/cte?name=Kazawitch+Haderach
+@app.route("/view/reportingstruct/cte")
+def viewreportingstructcte():
+    name = request.args.get('name')
+    if not name:
+        return jsonify({"error": "no name provided"}), 400
+
+    # 1. Define the Anchor: Start with the specific author
+    ancestors = db.session.query(
+        Author.id,
+        Author.name,
+        Author.boss_id
+    ).filter(Author.name == name).cte(name="ancestors", recursive=True)
+
+    # 2. Define the Recursive Step: Join the CTE with the Author table to find the boss
+    ancestors = ancestors.union_all(
+        db.session.query(
+            Author.id,
+            Author.name,
+            Author.boss_id
+        ).join(ancestors, ancestors.c.boss_id == Author.id)
+    )
+
+    # 3. Execute the query and fetch results
+    results = db.session.query(ancestors.c.name).all()
+
+    if not results:
+        return jsonify({"error": "Author not found"}), 404
+
+    # results[0] is the author themselves, so we skip it to match your original logic
+    ret = [r[0] for r in results][1:]
     return jsonify(ret)
 
 # http://127.0.0.1:5000/view/post?name=Jonny+Jones

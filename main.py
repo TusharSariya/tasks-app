@@ -1,11 +1,13 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
+from flask_cors import CORS
 from datetime import datetime, timezone
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
+CORS(app) # Enable CORS for all routes
 
 # Association table for the Many-to-Many relationship
 task_owners = db.Table('task_owners',

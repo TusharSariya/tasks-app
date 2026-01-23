@@ -25,6 +25,7 @@ class Author(db.Model):
 
     # Updated to Many-to-Many using the secondary table
     tasks = db.relationship('Task', secondary=task_owners, backref=db.backref('owners', lazy='dynamic'), lazy=True)
+    posts = db.relationship('Post', backref='author', lazy=True)
 
     @property
     def peers(self):
@@ -32,6 +33,12 @@ class Author(db.Model):
         if self.boss:
             return [x for x in self.boss.subordinates if x.id != self.id]
         return []
+    
+class Post(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    headline = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.String(1000), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False)
 
 class Task(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -64,6 +71,8 @@ with app.app_context():
     due_date2 = datetime(2026, 1, 14, 9, 0)
     project_1   = Task(headline="project about stuff", content="stuff stuff stuff", date=due_date2,owners=[steven,evan])
 
+    first_post = Post(headline="this is the first post", content="lorem ipsum how to make money",author=jones)
+
     db.session.add_all([jones, emily, steven, meeting_prep, project_1])
     db.session.commit()
 
@@ -86,9 +95,10 @@ def viewtasks():
 
 # http://127.0.0.1:5000/view/tasks?name=Emily+Hynes
 @app.route("/view/tasks")
-def viewtasks():
+def viewtasks2():
     name = request.args.get('name')
-    tasks = db.session.query(Task.headline).join(Task.owners).filter_by(Author.name=name).all()
+    #tasks = db.session.query(Task.headline).join(Task.owners).filter_by(Author.name=name).all()
+    return None
 
 
 # http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones
@@ -140,6 +150,19 @@ def viewreportingstruct():
         auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh
         ret.append(auth.name)
     return(ret)
+
+# http://127.0.0.1:5000/view/post?name=Jonny+Jones
+@app.route("/view/post")
+def viewpost():
+    name = request.args.get('name')
+    if name is None:
+        return("no name provided")
+    
+    # SELECT post.id AS post_id, post.headline AS post_headline, post.content AS post_content, post.author_id AS post_author_id FROM post JOIN author ON author.id = post.author_id 
+    posts = db.session.query(Post).join(Author).filter(Author.name == name).all()
+    
+    # Return a list of headlines so Flask can serialize it
+    return [post.headline for post in posts]
 
 
 if __name__ == '__main__':

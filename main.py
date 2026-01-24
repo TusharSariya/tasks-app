@@ -23,9 +23,17 @@ task_owners = db.Table('task_owners',
     db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True)
 )
 
+class Account(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(30), nullable=False, unique=True)
+    author = db.relationship("Author", back_populates="account") #creates an account field in author
+
+
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), nullable=False)
+    account = db.relationship("Account", back_populates='author', lazy=True) # allows me to get the Username Author.username.username, creates a author field in account
+    account_id = db.Column(db.Integer, db.ForeignKey('account.id'), nullable=False, unique=True) #this is the actual constraint, all users have a unique account
     age = db.Column(db.Integer,nullable=False)
     height = db.Column(db.Float,nullable=False)
 
@@ -76,14 +84,26 @@ class Comment(db.Model):
 with app.app_context():
     db.drop_all()
     db.create_all()
-    
-    jones = Author(name="Jonny Jones", age=25, height=1.8)              # level 0
-    emily = Author(name="Emily Hynes", age=30, height=1.0, boss=jones)  # level 1
-    acadia = Author(name="Acadia Philips", age=30, height=1.0, boss=jones)  # level 1
-    steven = Author(name="Steven Butt", age=22, height=1.7, boss=emily) # level 2
-    evan = Author(name="Evan Butt", age=22, height=1.7, boss=emily) # level 2
-    greg = Author(name="Gregory Butt", age=22, height=1.7, boss=acadia)  # level 2
-    Kazawitch = Author(name="Kazawitch Haderach", age=22, height=1.7, boss=greg)  # level 3
+    blockbuster = Account(username="blockbuster")
+    jones = Author(name="Jonny Jones", age=25, height=1.8, account=blockbuster)              # level 0
+
+    hermione = Account(username="hermione")
+    emily = Author(name="Emily Hynes", age=30, height=1.0, boss=jones, account=hermione)  # level 1
+
+    shaddowheart = Account(username="Shaddowheart")
+    acadia = Author(name="Acadia Philips", age=30, height=1.0, boss=jones, account=shaddowheart)  # level 1
+
+    ron = Account(username="ron")
+    steven = Author(name="Steven Butt", age=22, height=1.7, boss=emily,account=ron) # level 2
+
+    dumbeldore = Account(username="dumbledore")
+    evan = Author(name="Evan Butt", age=22, height=1.7, boss=emily, account=dumbeldore) # level 2
+
+    sauron = Account(username="sauron")
+    greg = Author(name="Gregory Butt", age=22, height=1.7, boss=acadia, account=sauron)  # level 2
+
+    paul = Account(username="Paul")
+    Kazawitch = Author(name="Kazawitch Haderach", age=22, height=1.7, boss=greg, account=paul)  # level 3
 
     due_date = datetime(2026, 1, 7, 9, 0)
     meeting_prep_mon = Task(headline="monday meeting prep", content="lorem ipsum how the buisness makes money on monday", date=due_date, owners=[emily])
@@ -99,6 +119,7 @@ with app.app_context():
     first_comment = Comment(content="example comment",task=meeting_prep_wed,author=jones)
     second_comment = Comment(content="example comment",task=meeting_prep_wed,author=emily)
 
+    db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul])
     db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment])
     db.session.commit()
 
@@ -185,7 +206,6 @@ def viewreportingstruct():
     if name is None:
         return("no name provided")
 
-    auth = Author.query.filter_by(name=name).all()[0]
     auth = Author.query.filter_by(name=name).first()
     if not auth:
         return jsonify({"error": "Author not found"}), 404
@@ -195,8 +215,37 @@ def viewreportingstruct():
     while auth.boss is not None:
         auth = auth.boss # this magic does sql queries under the hood, this is a bit insane tbh, ctes are better
         ret.append(auth.name)
-    return(ret)
     return jsonify(ret)
+
+# http://127.0.0.1:5000/view/closestshared/lead?name1=Steven+Butt&name2=Evan+Butt -> emily hynes/hermione
+@app.route("/view/closestshared/lead")
+def viewclosestsharedlead():
+    name1 = request.args.get('name1')
+    name2 = request.args.get('name2')
+    if name1 is None or name2 is None:
+        return("two names not provided")
+    
+    reportingstruct = set([])
+
+    auth = Author.query.filter_by(name=name1).first()
+    if not auth:
+        return jsonify({"error": "Author not found"}), 404
+    
+    reportingstruct.add(auth.account.username)
+
+    while auth.boss is not None:
+        auth = auth.boss # this magic 
+        reportingstruct.add(auth.account.username)
+
+    auth = Author.query.filter_by(name=name2).first()
+
+    while auth is not None and auth.account.username not in reportingstruct:
+        auth = auth.boss
+
+    if auth.account.username in reportingstruct:
+        return jsonify({"closest lead":auth.account.username})
+    
+    return jsonify({"failed": "is this an invalid org structure?"})
 
 # magic i dont understand
 # WITH RECURSIVE ancestors(id, name, boss_id) AS (SELECT author.id AS id, author.name AS name, author.boss_id AS boss_id FROM author WHERE author.name = ? UNION ALL SELECT author.id AS author_id, author.name AS author_name, author.boss_id AS author_boss_id FROM author JOIN ancestors ON ancestors.boss_id = author.id) SELECT ancestors.name AS ancestors_name FROM ancestors
@@ -244,7 +293,6 @@ def viewpost():
     posts = db.session.query(Post).join(Author).filter(Author.name == name).all()
     
     # Return a list of headlines so Flask can serialize it
-    return [post.headline for post in posts]
     return jsonify([post.headline for post in posts])
 
 

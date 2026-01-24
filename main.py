@@ -2,12 +2,20 @@ from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, timezone
+import enum
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_ECHO'] = True
 db = SQLAlchemy(app)
 CORS(app) # Enable CORS for all routes
+
+class TaskState(enum.Enum):
+    NEW = "new"
+    IN_PROGRESS = "inprogress"
+    FINISHED = "finished"
+    DELAYED = "delayed"
+    CANCELED = "canceled"
 
 # Association table for the Many-to-Many relationship
 task_owners = db.Table('task_owners',
@@ -48,6 +56,7 @@ class Task(db.Model):
     content = db.Column(db.String(1000), nullable=False)
     date    = db.Column(db.DateTime,default=None,nullable=True)
     creation_date = db.Column(db.DateTime,default=lambda: datetime.now(timezone.utc))
+    state = db.Column(db.Enum(TaskState), default=TaskState.NEW, nullable=False)
 
     def __repr__(self):
         return f'<Task {self.id}>'
@@ -77,21 +86,20 @@ with app.app_context():
     Kazawitch = Author(name="Kazawitch Haderach", age=22, height=1.7, boss=greg)  # level 3
 
     due_date = datetime(2026, 1, 7, 9, 0)
-    meeting_prep = Task(headline="monday meeting prep", content="lorem ipsum how the buisness makes money on monday", date=due_date, owners=[emily])
+    meeting_prep_mon = Task(headline="monday meeting prep", content="lorem ipsum how the buisness makes money on monday", date=due_date, owners=[emily])
 
     due_date3 = datetime(2026, 1, 9, 9, 0)
-    meeting_prep = Task(headline="wednesday meeting prep", content="lorem ipsum how the buisness makes money on wednesday", date=due_date3, owners=[emily])
+    meeting_prep_wed = Task(headline="wednesday meeting prep", content="lorem ipsum how the buisness makes money on wednesday", date=due_date3, owners=[emily])
 
     due_date2 = datetime(2026, 1, 14, 9, 0)
     project_1   = Task(headline="project about stuff", content="stuff stuff stuff", date=due_date2,owners=[steven,evan])
 
     first_post = Post(headline="this is the first post", content="lorem ipsum how to make money",author=jones)
 
+    first_comment = Comment(content="example comment",task=meeting_prep_wed,author=jones)
+    second_comment = Comment(content="example comment",task=meeting_prep_wed,author=emily)
 
-    first_comment = Comment(content="example comment",task=meeting_prep,author=jones)
-    second_comment = Comment(content="example comment",task=meeting_prep,author=emily)
-
-    db.session.add_all([jones, emily, steven, meeting_prep, project_1, first_post, first_comment, second_comment])
+    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment])
     db.session.commit()
 
 @app.route('/')
@@ -110,17 +118,30 @@ def viewtasks():
         json.append({
             "Author": task.Author.name,
             "Headline": task.Task.headline,
+            "State": task.Task.state.value,
             "comments": [{"content": comment.content, "author": comment.author.name} for comment in task.Task.comments]
         })
     
     return jsonify(json)
 
-# http://127.0.0.1:5000/view/tasks?name=Emily+Hynes
-#@app.route("/view/tasks")
-#def viewtasks2():
-#    name = request.args.get('name')
-    #tasks = db.session.query(Task.headline).join(Task.owners).filter_by(Author.name=name).all()
-#    return None
+@app.route("/view/tasks/update")
+def viewtasksupdate():
+    name = request.args.get('name')
+    state = request.args.get('state')
+    content = request.args.get('content')
+
+    if not name:
+        return jsonify({"error": "no name provided"}), 400
+
+    task = Task.query.filter_by(headline=name).first()
+    if not task:
+        return jsonify({"error": "task not found"}), 404
+    
+    newState = TaskState(state)
+    task.state = newState #this is the actual staged change
+    db.session.commit()
+    return jsonify({"success": "succefully updated task"}),200
+
 
 
 # http://127.0.0.1:5000/view/subordinates?name=Jonny+Jones

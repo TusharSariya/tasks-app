@@ -105,6 +105,9 @@ with app.app_context():
     paul = Account(username="Paul")
     Kazawitch = Author(name="Kazawitch Haderach", age=22, height=1.7, boss=greg, account=paul)  # level 3
 
+    tanner = Account(username="Tanner")
+    jimbo = Author(name="Jimmy Jimbo", age=22, height=1.7, account=tanner)
+
     due_date = datetime(2026, 1, 7, 9, 0)
     meeting_prep_mon = Task(headline="monday meeting prep", content="lorem ipsum how the buisness makes money on monday", date=due_date, owners=[emily])
 
@@ -119,8 +122,8 @@ with app.app_context():
     first_comment = Comment(content="example comment",task=meeting_prep_wed,author=jones)
     second_comment = Comment(content="example comment",task=meeting_prep_wed,author=emily)
 
-    db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul])
-    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment])
+    db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul,tanner])
+    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment, jimbo])
     db.session.commit()
 
 @app.route('/')
@@ -218,6 +221,7 @@ def viewreportingstruct():
     return jsonify(ret)
 
 # http://127.0.0.1:5000/view/closestshared/lead?name1=Steven+Butt&name2=Evan+Butt -> emily hynes/hermione
+# http://127.0.0.1:5000/view/closestshared/lead?name1=Steven+Butt&name2=Jimmy+Jimbo -> invalid
 @app.route("/view/closestshared/lead")
 def viewclosestsharedlead():
     name1 = request.args.get('name1')
@@ -234,15 +238,17 @@ def viewclosestsharedlead():
     reportingstruct.add(auth.account.username)
 
     while auth.boss is not None:
-        auth = auth.boss # this magic 
+        auth = auth.boss # this magic, but it also does an sql query for every call, which is bad
         reportingstruct.add(auth.account.username)
 
     auth = Author.query.filter_by(name=name2).first()
+    if not auth:
+        return jsonify({"error": "Author not found"}), 404
 
     while auth is not None and auth.account.username not in reportingstruct:
         auth = auth.boss
 
-    if auth.account.username in reportingstruct:
+    if auth is not None and auth.account.username in reportingstruct:
         return jsonify({"closest lead":auth.account.username})
     
     return jsonify({"failed": "is this an invalid org structure?"})

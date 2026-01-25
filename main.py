@@ -156,9 +156,10 @@ def viewtasks():
 def viewtasksaccount():
     username = request.args.get('username')
 
-    author = db.session.query(Author).join(Account, Author.account_id == Account.id).filter(Account.username == username).first()
-    print(author.name)
-    return(author.name)
+    authors = db.session.query(Author,Task).join(Account, Author.account_id == Account.id).filter(Account.username == username).all()
+    for author in authors:
+        print(author.Task.headline)
+    return("None")
 
 @app.route("/view/tasks/update")
 def viewtasksupdate():

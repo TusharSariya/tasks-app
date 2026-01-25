@@ -117,6 +117,9 @@ with app.app_context():
     due_date2 = datetime(2026, 1, 14, 9, 0)
     project_1   = Task(headline="project about stuff", content="stuff stuff stuff", date=due_date2,owners=[steven,evan])
 
+    due_date3 = datetime(2026, 1, 14, 9, 0)
+    project_2   = Task(headline="another project about stuff", content="another stuff stuff stuff", date=due_date3,owners=[acadia])
+
     first_post = Post(headline="this is the first post", content="lorem ipsum how to make money",author=jones)
 
     first_comment = Comment(content="example comment",task=meeting_prep_wed,author=jones)
@@ -147,6 +150,15 @@ def viewtasks():
         })
     
     return jsonify(json)
+
+# http://127.0.0.1:5000/view/tasks/account?username=hermione
+@app.route("/view/tasks/account")
+def viewtasksaccount():
+    username = request.args.get('username')
+
+    author = db.session.query(Author).join(Account, Author.account_id == Account.id).filter(Account.username == username).first()
+    print(author.name)
+    return(author.name)
 
 @app.route("/view/tasks/update")
 def viewtasksupdate():

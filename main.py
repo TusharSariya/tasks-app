@@ -4,6 +4,7 @@ from flask_cors import CORS
 from datetime import datetime, timezone
 import enum
 import sqltap.wsgi
+from sqlalchemy import func
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -25,12 +26,13 @@ task_owners = db.Table('task_owners',
     db.Column('task_id', db.Integer, db.ForeignKey('task.id'), primary_key=True)
 )
 
+#all usernames are unique
 class Account(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(30), nullable=False, unique=True)
     author = db.relationship("Author", back_populates="account") #creates an account field in author
 
-
+#author names are not unique
 class Author(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), nullable=False)
@@ -158,16 +160,30 @@ def viewtasks():
     
     return jsonify(json)
 
-# http://127.0.0.1:5000/view/tasks/account?username=hermione
+# http://127.0.0.1:5000/view/tasks/account?username=hermione&start_level=1&end_level=2
 @app.route("/view/tasks/account")
 def viewtasksaccount():
     username = request.args.get('username')
+    start_level = int(request.args.get('start_level',1))
+    end_level = int(request.args.get('end_level',1))
 
-    # Start with Task and Author to avoid ambiguity and match the structure of viewtasks
+    #first you need to get all subbordinates
+    #unpack the tuple :galaxy-brain:
+    author, = db.session.query(Author.name).join(Account).filter(Account.username == username).first()
+    print("--------------------------------------------------------------")
+    print(author)
+    subs = _viewsubordinates(author,start_level,end_level)
+
+    names = [sub["name"] for sub in subs]+[author]
+    print("--------------------------------------------------------------")
+    print(names)
+
+    #then you need to get all tasks for yourself and your subbordinates
+    #this uses author name which is not unique
     results = db.session.query(Task, Author, Account).\
         join(Task.owners).\
         join(Account).\
-        filter(Account.username == username).all()
+        filter(Author.name.in_(names)).all()
 
     tasks = []
 
@@ -215,6 +231,10 @@ def viewsubordinates():
         print("no name provided")
         return "no name provided"
     
+    return _viewsubordinates(name,start_level,end_level)
+
+def _viewsubordinates(name,start_level,end_level):
+
     subs = []
 
     bfs = []
@@ -225,7 +245,7 @@ def viewsubordinates():
         curname,curlevel = bfs.pop(0)
         if curlevel == end_level:
             continue
-        #this logic assumes names are unique
+        #this logic assumes names are unique, this produces N+1 queries
         subordinates = Author.query.filter_by(name=curname).all()[0].subordinates
         for sub in subordinates:
             if curlevel >= start_level-1:
@@ -234,6 +254,59 @@ def viewsubordinates():
 
     print(subs)
     return subs
+
+
+
+# ai magic CTE
+# http://127.0.0.1:5000/view/subordinates/efficient?username=hermione
+# http://127.0.0.1:5000/view/subordinates/efficient?username=hermione&start_level=1&end_level=2
+@app.route("/view/subordinates/efficient")
+def viewsubordinatesefficient():
+    # Get the 'boss_id' from the URL query parameters (e.g., ?boss_id=1)
+    name = request.args.get('name')
+    start_level = int(request.args.get('start_level', 1))
+    end_level = int(request.args.get('end_level', 1))
+
+    if not name:
+        return jsonify({"error": "no name provided"}), 400
+    
+    # Get the starting author
+    start_author = Author.query.filter_by(name=name).first()
+    if not start_author:
+        return jsonify({"error": "Author not found"}), 404
+
+    # 1. Define the Anchor: Start with the specific author at level 0
+    subordinates = db.session.query(
+        Author.id,
+        Author.name,
+        Author.boss_id,
+        func.cast(0, db.Integer).label('level')
+    ).filter(Author.name == name).cte(name="subordinates", recursive=True)
+
+    # 2. Define the Recursive Step: Find subordinates of people already in the CTE
+    # Join on Author.boss_id == subordinates.c.id (find people whose boss is in the CTE)
+    subordinates = subordinates.union_all(
+        db.session.query(
+            Author.id,
+            Author.name,
+            Author.boss_id,
+            (subordinates.c.level + 1).label('level')
+        ).join(subordinates, Author.boss_id == subordinates.c.id)
+    )
+
+    # 3. Execute the query, filter by level, and exclude the starting person (level 0)
+    results = db.session.query(
+        subordinates.c.name,
+        subordinates.c.level
+    ).filter(
+        subordinates.c.level >= start_level,
+        subordinates.c.level <= end_level
+    ).all()
+
+    # 4. Format results
+    subs = [{"name": r.name, "distance": r.level} for r in results]
+    
+    return jsonify(subs)
 
 # SELECT author.id AS author_id, author.name AS author_name, author.age AS author_age, author.height AS author_height, author.boss_id AS author_boss_id FROM author WHERE author.name = ?
 # http://127.0.0.1:5000/view/reportingstruct?name=Kazawitch+Haderach

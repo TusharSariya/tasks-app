@@ -3,10 +3,12 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import datetime, timezone
 import enum
+import sqltap.wsgi
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
 app.config['SQLALCHEMY_ECHO'] = True
+app.wsgi_app = sqltap.wsgi.SQLTapMiddleware(app.wsgi_app)
 db = SQLAlchemy(app)
 CORS(app) # Enable CORS for all routes
 
@@ -41,7 +43,7 @@ class Author(db.Model):
     boss_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=True) # when you create a subordinate it is associated to the boss and populates the subordinates list
     subordinates = db.relationship('Author', backref=db.backref('boss', remote_side=[id])) #this is magically a list because of how sql alchemy works
 
-    # Updated to Many-to-Many using the secondary table
+    # relationship to Task table, secondary the asociation table for many to many relationship, backref is a reverse relationship, 
     tasks = db.relationship('Task', secondary=task_owners, backref=db.backref('owners', lazy='dynamic'), lazy=True)
     posts = db.relationship('Post', backref='author', lazy=True)
 
@@ -77,6 +79,7 @@ class Comment(db.Model):
     author_id = db.Column(db.Integer, db.ForeignKey('author.id'), nullable=False)
 
     # Relationships for easier data traversal
+    #relationships create dynamic sql queries under the hood which is convenient.
     author = db.relationship('Author', backref=db.backref('comments', lazy=True))
     task = db.relationship('Task', backref=db.backref('comments', lazy=True)) # comment.task and task.comment, these are both the actual objects
     post = db.relationship('Post', backref=db.backref('comments', lazy=True))
@@ -135,10 +138,12 @@ def index():
     return render_template('index.html', tasks=tasks)
 
 # http://127.0.0.1:5000/view/tasks
+# SELECT task.id AS task_id, task.headline AS task_headline, task.content AS task_content, task.date AS task_date, task.creation_date AS task_creation_date, task.state AS task_state, author.id AS author_id, author.name AS author_name, author.account_id AS author_account_id, author.age AS author_age, author.height AS author_height, author.boss_id AS author_boss_id FROM task JOIN task_owners AS task_owners_1 ON task.id = task_owners_1.task_id JOIN author ON author.id = task_owners_1.author_id
 @app.route("/view/tasks")
 def viewtasks():
+    #you may be wondering Author and Task already have a relationship so why do i need to join them.
+    #the reason is to make one efficient query instead of N+1 queries
     tasks = db.session.query(Task, Author).join(Task.owners).all()
-    # Return a list of dictionaries as JSON
     print(tasks)
     json = []
     for task in tasks:
@@ -146,6 +151,8 @@ def viewtasks():
             "Author": task.Author.name,
             "Headline": task.Task.headline,
             "State": task.Task.state.value,
+            # task.Task.comments leverages relationships, i wrote it this way because i want to group comments by task
+            # this does produce N+1 queries though
             "comments": [{"content": comment.content, "author": comment.author.name} for comment in task.Task.comments]
         })
     
@@ -156,9 +163,14 @@ def viewtasks():
 def viewtasksaccount():
     username = request.args.get('username')
 
-    authors = db.session.query(Author,Task).join(Account, Author.account_id == Account.id).filter(Account.username == username).all()
-    for author in authors:
-        print(author.Task.headline)
+    # Start with Task and Author to avoid ambiguity and match the structure of viewtasks
+    results = db.session.query(Task, Author).\
+        join(Task.owners).\
+        join(Account).\ 
+        filter(Account.username == username).all()
+
+    for row in results:
+        print(row.Task.headline)
     return("None")
 
 @app.route("/view/tasks/update")

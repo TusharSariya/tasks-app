@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import enum
 import sqltap.wsgi
 from sqlalchemy import func
+import time
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
@@ -145,6 +146,7 @@ def index():
 def viewtasks():
     #you may be wondering Author and Task already have a relationship so why do i need to join them.
     #the reason is to make one efficient query instead of N+1 queries
+    time.sleep(1)
     tasks = db.session.query(Task, Author).join(Task.owners).all()
     print(tasks)
     json = []

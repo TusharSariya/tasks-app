@@ -4,6 +4,7 @@ import { ErrorMessage } from './components/common/ErrorMessage'
 import { TaskList } from './components/tasks/TaskList'
 
 function App() {
+  //retrieve tasks and organize by task headline
   const { tasks, loading, error } = useTasks()
 
   return (

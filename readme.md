@@ -21,5 +21,10 @@ Tasks in the real world aren't just strings; they have lifecycles. The Challenge
 3. Role-Based Access Control (RBAC)
 Right now, anyone can query any author's subordinates or tasks. The Challenge: Implement logic where an Author can only view the Tasks of people they manage (their subordinates). This requires joining the Author hierarchy with the Task owners table in a single complex query.
 
+Creating an API endpoint for org chart data, then a React component to display it. Recommended libraries:
+react-organizational-chart — simple, customizable
+react-d3-tree — D3-based, more features
+react-organigram — lightweight
+
 
 

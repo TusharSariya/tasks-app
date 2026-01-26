@@ -164,14 +164,23 @@ def viewtasksaccount():
     username = request.args.get('username')
 
     # Start with Task and Author to avoid ambiguity and match the structure of viewtasks
-    results = db.session.query(Task, Author).\
+    results = db.session.query(Task, Author, Account).\
         join(Task.owners).\
-        join(Account).\ 
+        join(Account).\
         filter(Account.username == username).all()
 
+    tasks = []
+
     for row in results:
-        print(row.Task.headline)
-    return("None")
+        tasks.append({
+            "headline": row.Task.headline,
+            "content": row.Task.content,
+            "date": row.Task.date,
+            "state": row.Task.state.value,
+            "author": row.Author.name,
+            "account": row.Account.username
+        })
+    return jsonify(tasks)
 
 @app.route("/view/tasks/update")
 def viewtasksupdate():

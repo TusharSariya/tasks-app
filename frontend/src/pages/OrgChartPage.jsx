@@ -8,9 +8,25 @@ const OrgNode = ({ person, subordinatesMap }) => {
     // 1. Get children for the current person
     const children = subordinatesMap[person.id] || []
 
+    const handleMouseEnter = () => {
+        console.log(`Hovering over ${person.name}`)
+        // Set state, show tooltip, fetch more data, etc.
+    }
+    const handleMouseLeave = () => {
+        console.log(`Left ${person.name}`)
+    }
+
     return (
         // 2. Render the current person
-        <TreeNode label={<div style={{ border: '1px solid black', padding: '8px' }}>{person.name}</div>}>
+        <TreeNode label={
+            <div
+                style={{ border: '1px solid black', padding: '8px', cursor: 'pointer' }}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+            >
+                {person.name}
+            </div>
+        }>
             {/* 3. Recursively render children */}
             {children.map(child => (
                 <OrgNode key={child.id} person={child} subordinatesMap={subordinatesMap} />

@@ -1,5 +1,6 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { TasksPage } from './pages/TasksPage'
+import { OrgChartPage } from './pages/OrgChartPage'
 
 function App() {
   return (
@@ -7,11 +8,13 @@ function App() {
       <nav style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
         <Link to="/">Home</Link>
         <Link to="/tasks">Tasks</Link>
+        <Link to="/org-chart">Org Chart</Link>
       </nav>
 
       <Routes>
         <Route path="/" element={<div>Home page</div>} />
         <Route path="/tasks" element={<TasksPage />} />
+        <Route path="/org-chart" element={<OrgChartPage />} />
       </Routes>
     </div>
   )

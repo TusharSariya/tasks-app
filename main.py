@@ -237,7 +237,7 @@ def viewsubordinates():
 
 def _viewsubordinates(name,start_level,end_level):
 
-    subs = []
+    subs = [] # suboardinate,suboardinate_id, boss, boss_id,depth
 
     bfs = []
 
@@ -251,7 +251,7 @@ def _viewsubordinates(name,start_level,end_level):
         subordinates = Author.query.filter_by(name=curname).all()[0].subordinates
         for sub in subordinates:
             if curlevel >= start_level-1:
-                subs.append({"name":sub.name,"distance":curlevel+1})
+                subs.append({"name":sub.name,"id":sub.id,"boss":curname,"boss_id":sub.boss_id,"distance":curlevel+1})
             bfs.append((sub.name,curlevel+1))
 
     print(subs)

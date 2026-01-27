@@ -4,30 +4,45 @@ import { Loading } from '../components/common/Loading'
 import { ErrorMessage } from '../components/common/ErrorMessage'
 import { Tree, TreeNode } from 'react-organizational-chart';
 
+import { useState } from 'react'; // Don't forget to import useState
+
 const OrgNode = ({ person, subordinatesMap }) => {
-    // 1. Get children for the current person
     const children = subordinatesMap[person.id] || []
+    const [isHovering, setIsHovering] = useState(false); // 1. Create State
 
     const handleMouseEnter = () => {
-        console.log(`Hovering over ${person.name}`)
-        // Set state, show tooltip, fetch more data, etc.
+        setIsHovering(true); // 2. Update State
     }
+
     const handleMouseLeave = () => {
-        console.log(`Left ${person.name}`)
+        setIsHovering(false); // 2. Update State
     }
 
     return (
-        // 2. Render the current person
         <TreeNode label={
             <div
-                style={{ border: '1px solid black', padding: '8px', cursor: 'pointer' }}
+                style={{ border: '1px solid black', padding: '8px', cursor: 'pointer', position: 'relative' }}
                 onMouseEnter={handleMouseEnter}
                 onMouseLeave={handleMouseLeave}
             >
                 {person.name}
+                {isHovering && (
+                    <div style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: '50%',
+                        transform: 'translateX(-50%)',
+                        background: 'lightgray',
+                        padding: '5px',
+                        border: '1px solid gray',
+                        zIndex: 10,
+                        width: 'max-content'
+                    }}>
+                        Hovering: {person.name}
+                    </div>
+                )}
             </div>
         }>
-            {/* 3. Recursively render children */}
             {children.map(child => (
                 <OrgNode key={child.id} person={child} subordinatesMap={subordinatesMap} />
             ))}

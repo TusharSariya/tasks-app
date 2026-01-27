@@ -4,11 +4,13 @@ import { OrgChartPage } from './pages/OrgChartPage'
 
 function App() {
   return (
-    <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <nav style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
-        <Link to="/">Home</Link>
-        <Link to="/tasks">Tasks</Link>
-        <Link to="/org-chart">Org Chart</Link>
+    <div className="app-container">
+      <nav className="navbar">
+        <div className="nav-links">
+          <Link to="/" className="nav-link">Home</Link>
+          <Link to="/tasks" className="nav-link">Tasks</Link>
+          <Link to="/org-chart" className="nav-link">Org Chart</Link>
+        </div>
       </nav>
 
       <Routes>

@@ -27,7 +27,15 @@ const OrgNode = ({ person, subordinatesMap }) => {
     return (
         <TreeNode label={
             <div
-                style={{ border: '1px solid black', padding: '8px', cursor: 'pointer', position: 'relative' }}
+                style={{
+                    border: '1px solid #ddd',
+                    borderRadius: '8px',
+                    padding: '20px',
+                    backgroundColor: '#fff',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+                    cursor: 'pointer',
+                    color: 'black'
+                }}
                 onMouseEnter={handleMouseEnter}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
@@ -81,7 +89,15 @@ export function OrgChartPage() {
     if (error) return <ErrorMessage error={error} />
     const rootPerson = { id: 1, name: "Jonny Jones" }
     return (
-        <Tree label={<div style={{ border: '1px solid black', padding: '8px' }}>{rootPerson.name}</div>}>
+        <Tree label={<div style={{
+            border: '1px solid #ddd',
+            borderRadius: '8px',
+            padding: '20px',
+            backgroundColor: '#fff',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            cursor: 'pointer',
+            color: 'black'
+        }}>{rootPerson.name}</div>}>
             {/* Start looking for subordinates of ID 1 */}
             {(subordinatesMap[1] || []).map(child => (
                 <OrgNode key={child.id} person={child} subordinatesMap={subordinatesMap} />

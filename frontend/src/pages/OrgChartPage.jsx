@@ -8,14 +8,20 @@ import { useState } from 'react'; // Don't forget to import useState
 
 const OrgNode = ({ person, subordinatesMap }) => {
     const children = subordinatesMap[person.id] || []
-    const [isHovering, setIsHovering] = useState(false); // 1. Create State
+    const [isHovering, setIsHovering] = useState(false);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
-    const handleMouseEnter = () => {
-        setIsHovering(true); // 2. Update State
+    const handleMouseEnter = (e) => {
+        setIsHovering(true);
+        setMousePos({ x: e.clientX, y: e.clientY });
+    }
+
+    const handleMouseMove = (e) => {
+        setMousePos({ x: e.clientX, y: e.clientY });
     }
 
     const handleMouseLeave = () => {
-        setIsHovering(false); // 2. Update State
+        setIsHovering(false);
     }
 
     return (
@@ -23,15 +29,15 @@ const OrgNode = ({ person, subordinatesMap }) => {
             <div
                 style={{ border: '1px solid black', padding: '8px', cursor: 'pointer', position: 'relative' }}
                 onMouseEnter={handleMouseEnter}
+                onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
             >
                 {person.name}
                 {isHovering && (
                     <div style={{
-                        position: 'absolute',
-                        top: '100%',
-                        left: '50%',
-                        transform: 'translateX(-50%)',
+                        position: 'fixed',
+                        top: mousePos.y + 15,
+                        left: mousePos.x + 15,
                         background: 'lightgray',
                         padding: '5px',
                         border: '1px solid gray',

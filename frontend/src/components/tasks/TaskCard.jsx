@@ -26,6 +26,7 @@ export const TaskCard = ({ task }) => {
       </div>
 
       <TaskOwners authors={task.authors} />
+      <strong style={{ color: '#666' }}>Comments ({task.comments.length}):</strong>
       {showComments && <TaskComments comments={task.comments} />}
     </div>
   )

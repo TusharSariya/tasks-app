@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { TasksPage } from './pages/TasksPage'
 import { OrgChartPage } from './pages/OrgChartPage'
+import './App.css'
 
 function App() {
   return (

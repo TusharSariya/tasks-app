@@ -1,6 +1,7 @@
 import { Routes, Route, Link } from 'react-router-dom'
 import { TasksPage } from './pages/TasksPage'
 import { OrgChartPage } from './pages/OrgChartPage'
+import { UserDetailsPage } from './pages/UserDetailsPage'
 import './App.css'
 
 function App() {
@@ -18,6 +19,7 @@ function App() {
         <Route path="/" element={<div>Home page</div>} />
         <Route path="/tasks" element={<TasksPage />} />
         <Route path="/org-chart" element={<OrgChartPage />} />
+        <Route path="/user/:userId" element={<UserDetailsPage />} />
       </Routes>
     </div>
   )

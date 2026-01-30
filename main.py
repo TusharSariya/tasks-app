@@ -131,8 +131,10 @@ with app.app_context():
     first_comment = Comment(content="example comment",task=meeting_prep_wed,author=jones)
     second_comment = Comment(content="example comment",task=meeting_prep_wed,author=emily)
 
+    second_post = Post(headline="this is the second post", content="lorem ipsum how to make money",author=emily)
+
     db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul,tanner])
-    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment, jimbo])
+    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment, jimbo, second_post])
     db.session.commit()
 
 @app.route('/')
@@ -407,8 +409,13 @@ def viewpost():
     # SELECT post.id AS post_id, post.headline AS post_headline, post.content AS post_content, post.author_id AS post_author_id FROM post JOIN author ON author.id = post.author_id 
     posts = db.session.query(Post).join(Author).filter(Author.name == name).all()
     
-    # Return a list of headlines so Flask can serialize it
-    return jsonify([post.headline for post in posts])
+    # Return a list of dicts so Flask can serialize it
+    return jsonify([{
+        "id": post.id,
+        "headline": post.headline,
+        "content": post.content,
+        "author_id": post.author_id
+    } for post in posts])
 
 # http://127.0.0.1:5000/view/author/name?name=Jonny+Jones
 @app.route("/view/author/name")

@@ -4,9 +4,11 @@ import { Loading } from '../components/common/Loading'
 import { ErrorMessage } from '../components/common/ErrorMessage'
 import { Tree, TreeNode } from 'react-organizational-chart';
 
+import { useNavigate } from 'react-router-dom';
 import { useState } from 'react'; // Don't forget to import useState
 
 const OrgNode = ({ person, subordinatesMap }) => {
+    const navigate = useNavigate();
     const children = subordinatesMap[person.id] || []
     const [isHovering, setIsHovering] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -39,6 +41,7 @@ const OrgNode = ({ person, subordinatesMap }) => {
                 onMouseEnter={handleMouseEnter}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
+                onClick={() => navigate(`/user/${person.id}`)}
             >
                 {person.name}
                 {isHovering && (
@@ -63,14 +66,6 @@ const OrgNode = ({ person, subordinatesMap }) => {
         </TreeNode>
     )
 }
-
-const ExampleTree = () => (
-    <Tree label={<div>Root</div>}>
-        <TreeNode label={<div>Child 1</div>}>
-            <TreeNode label={<div>Grand Child</div>} />
-        </TreeNode>
-    </Tree>
-);
 
 export function OrgChartPage() {
     //jonny is id 1 so lets just assume that and continue

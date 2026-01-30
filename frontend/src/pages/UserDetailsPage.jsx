@@ -18,6 +18,7 @@ export const UserDetailsPage = () => {
                     throw new Error('Failed to fetch user details')
                 }
                 const data = await response.json()
+                console.log(data)
                 setUser(data)
             } catch (err) {
                 setError(err.message)

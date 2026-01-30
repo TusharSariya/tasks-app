@@ -410,6 +410,27 @@ def viewpost():
     # Return a list of headlines so Flask can serialize it
     return jsonify([post.headline for post in posts])
 
+# http://127.0.0.1:5000/view/author/name?name=Jonny+Jones
+@app.route("/view/author/name")
+def viewauthorbyname():
+    name = request.args.get('name')
+    if not name:
+        return jsonify({"error": "no name provided"}), 400
+
+    author = Author.query.filter_by(name=name).join(Account).first()
+    if not author:
+        return jsonify({"error": "Author not found"}), 404
+
+    return jsonify({
+        "id": author.id,
+        "name": author.name,
+        "account_id": author.account_id,
+        "age": author.age,
+        "height": author.height,
+        "boss_name": author.boss.name if author.boss else None,
+        "subordinates_count": len(author.subordinates)
+    })
+
 # http://127.0.0.1:5000/view/author/1
 @app.route("/view/author/<int:id>")
 def viewauthor(id):

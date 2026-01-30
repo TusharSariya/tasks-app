@@ -88,8 +88,8 @@ class Comment(db.Model):
     post = db.relationship('Post', backref=db.backref('comments', lazy=True))
 
 with app.app_context():
-    db.drop_all()
-    db.create_all()
+    # db.drop_all()
+    # db.create_all()
     blockbuster = Account(username="blockbuster")
     jones = Author(name="Jonny Jones", age=25, height=1.8, account=blockbuster)              # level 0
 
@@ -133,9 +133,9 @@ with app.app_context():
 
     second_post = Post(headline="this is the second post", content="lorem ipsum how to make money",author=emily)
 
-    db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul,tanner])
-    db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment, jimbo, second_post])
-    db.session.commit()
+    # db.session.add_all([blockbuster,hermione,shaddowheart,ron,dumbeldore,sauron,paul,tanner])
+    # db.session.add_all([jones, emily, steven, meeting_prep_mon, meeting_prep_wed, project_1, first_post, first_comment, second_comment, jimbo, second_post])
+    # db.session.commit()
 
 @app.route('/')
 def index():

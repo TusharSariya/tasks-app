@@ -9,6 +9,8 @@ export const UserDetailsPage = () => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
     const [posts, setPosts] = useState([])
+    const [tasks, setTasks] = useState([])
+    const [comments, setComments] = useState([])
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -30,6 +32,21 @@ export const UserDetailsPage = () => {
                         setPosts(postsData)
                     }
                 }
+
+                // Fetch tasks for this user
+                const tasksResponse = await fetch(`http://127.0.0.1:5000/view/author/${userId}/tasks`)
+                if (tasksResponse.ok) {
+                    const tasksData = await tasksResponse.json()
+                    setTasks(tasksData)
+                }
+
+                // Fetch comments for this user
+                const commentsResponse = await fetch(`http://127.0.0.1:5000/view/author/${userId}/comments`)
+                if (commentsResponse.ok) {
+                    const commentsData = await commentsResponse.json()
+                    setComments(commentsData)
+                }
+
             } catch (err) {
                 setError(err.message)
             } finally {
@@ -58,27 +75,84 @@ export const UserDetailsPage = () => {
                 <p><strong>Subordinates Count:</strong> {user.subordinates_count}</p>
             </div>
 
-            <div style={{ textAlign: 'left', marginTop: '30px' }}>
-                <h2>Posts</h2>
-                {posts.length === 0 ? (
-                    <p>No posts found.</p>
-                ) : (
-                    <div className="posts-list">
-                        {posts.map(post => (
-                            <div key={post.id} style={{
-                                border: '1px solid #ddd',
-                                borderRadius: '8px',
-                                padding: '15px',
-                                marginBottom: '10px',
-                                backgroundColor: '#f9f9f9',
-                                color: '#333'
-                            }}>
-                                <h3 style={{ marginTop: 0 }}>{post.headline}</h3>
-                                <p>{post.content}</p>
-                            </div>
-                        ))}
-                    </div>
-                )}
+            <div style={{ textAlign: 'left', marginTop: '30px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+                {/* Posts Section */}
+                <div>
+                    <h2>Posts</h2>
+                    {posts.length === 0 ? (
+                        <p>No posts found.</p>
+                    ) : (
+                        <div className="posts-list">
+                            {posts.map(post => (
+                                <div key={post.id} style={{
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    marginBottom: '10px',
+                                    backgroundColor: '#f9f9f9',
+                                    color: '#333'
+                                }}>
+                                    <h3 style={{ marginTop: 0 }}>{post.headline}</h3>
+                                    <p>{post.content}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Tasks Section */}
+                <div>
+                    <h2>Tasks</h2>
+                    {tasks.length === 0 ? (
+                        <p>No tasks found.</p>
+                    ) : (
+                        <div className="tasks-list">
+                            {tasks.map((task, index) => (
+                                <div key={index} style={{
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
+                                    padding: '15px',
+                                    marginBottom: '10px',
+                                    backgroundColor: '#fff',
+                                    color: '#333'
+                                }}>
+                                    <h3 style={{ marginTop: 0 }}>{task.headline}</h3>
+                                    <p><strong>Status:</strong> {task.state}</p>
+                                    <p>{task.content}</p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Comments Section */}
+                <div>
+                    <h2>Comments</h2>
+                    {comments.length === 0 ? (
+                        <p>No comments found.</p>
+                    ) : (
+                        <div className="comments-list">
+                            {comments.map((comment, index) => (
+                                <div key={index} style={{
+                                    border: '1px solid #ddd',
+                                    borderRadius: '8px',
+                                    padding: '10px',
+                                    marginBottom: '10px',
+                                    backgroundColor: '#f0f0f0',
+                                    color: '#333',
+                                    fontSize: '0.9rem'
+                                }}>
+                                    <p style={{ margin: 0, fontStyle: 'italic' }}>"{comment.content}"</p>
+                                    <p style={{ margin: '5px 0 0', fontSize: '0.8rem', color: '#666' }}>
+                                        {comment.on_task ? `On Task: ${comment.on_task}` : `On Post: ${comment.on_post}`}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
             </div>
 
             <div style={{ marginTop: '20px' }}>

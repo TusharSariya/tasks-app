@@ -454,6 +454,30 @@ def viewauthor(id):
         "subordinates_count": len(author.subordinates)
     })
 
+# http://127.0.0.1:5000/view/author/1/tasks
+@app.route("/view/author/<int:id>/tasks")
+def viewauthortasks(id):
+    # Get tasks where the author is one of the owners
+    tasks = db.session.query(Task).join(Task.owners).filter(Author.id == id).all()
+    
+    return jsonify([{
+        "headline": task.headline,
+        "content": task.content,
+        "state": task.state.value,
+        "date": task.date
+    } for task in tasks])
+
+# http://127.0.0.1:5000/view/author/1/comments
+@app.route("/view/author/<int:id>/comments")
+def viewauthorcomments(id):
+    comments = Comment.query.filter_by(author_id=id).all()
+    
+    return jsonify([{
+        "content": comment.content,
+        "on_task": comment.task.headline if comment.task else None,
+        "on_post": comment.post.headline if comment.post else None
+    } for comment in comments])
+
 
 if __name__ == '__main__':
     app.run(debug=True)
